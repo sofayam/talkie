@@ -32,7 +32,8 @@
         android:layout_height="wrap_content"
         android:text="SEND"
         android:id="@+id/sendButton"
-        android:layout_centerVertical="true"
+        android:layout_below="@+id/requestText"
         android:layout_alignLeft="@+id/textView"
-        android:layout_alignStart="@+id/textView" />
+        android:layout_alignStart="@+id/textView"
+        android:layout_marginTop="51dp" />
 </RelativeLayout>
