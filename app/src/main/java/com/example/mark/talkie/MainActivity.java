@@ -9,7 +9,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener {
 
-    private  EditText spokenText ;
+    private  TextView spokenText ;
     private final int REQ_CODE_SPEECH_INPUT = 100;
     private TextToSpeech tts ;
     @Override
@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     }
 
     private void setupInterface() {
-        spokenText = (EditText) findViewById(R.id.requestText);
+        spokenText = (TextView) findViewById(R.id.requestText);
         Button sendButton = (Button) findViewById(R.id.sendButton);
         Button readbackButton = (Button) findViewById(R.id.readbackButton);
         sendButton.setOnClickListener(new View.OnClickListener() {
@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
                 // read contents of text field and send to socket
                 String foo = spokenText.getText().toString();
-                final int foo1 = Log.d("FOO", foo);
+                Log.d("FOO", foo);
             }
         });
         Button speakButton = (Button) findViewById(R.id.speakButton);
@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        final int foo1 = Log.d("FOO", "activity result");
+        Log.d("FOO", "activity result");
         switch (requestCode) {
             case REQ_CODE_SPEECH_INPUT: {
                 if (resultCode == RESULT_OK && null != data) {
