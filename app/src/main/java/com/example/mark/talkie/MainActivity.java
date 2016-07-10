@@ -9,17 +9,22 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import java.util.ArrayList;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener {
 
+
+
     private  TextView spokenText ;
     private final int REQ_CODE_SPEECH_INPUT = 100;
     private TextToSpeech tts ;
+    private ToggleButton autoTXRXButton;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -28,9 +33,13 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     }
 
     private void setupInterface() {
+
+        autoTXRXButton = (ToggleButton) findViewById(R.id.toggleButton);
+
         spokenText = (TextView) findViewById(R.id.requestText);
         Button sendButton = (Button) findViewById(R.id.sendButton);
         Button readbackButton = (Button) findViewById(R.id.readbackButton);
+
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -56,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
         });
         tts = new TextToSpeech(this,this);
+
     }
 
     private void readBack() {
@@ -93,6 +103,11 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                     ArrayList<String> result = data
                             .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
                     spokenText.setText(result.get(0));
+                    if (autoTXRXButton.isChecked()) {
+                        Log.d("FOO","checked");
+                    } else {
+                        Log.d("FOO","not checked");
+                    }
                 }
                 break;
             }
@@ -111,5 +126,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         }
         else
             Log.e("error", "Initialization Failed!");
+    }
+
+    void sendSocket(String reason, String text) {
+
     }
 }
