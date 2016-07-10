@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     private String hostName = "192.168.178.25";
     private int portNumber = 3003;
 
-    private  TextView spokenText ;
+    private  TextView spokenText, answerText ;
     private final int REQ_CODE_SPEECH_INPUT = 100;
     private TextToSpeech tts ;
     private ToggleButton autoTXRXButton;
@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         autoTXRXButton = (ToggleButton) findViewById(R.id.toggleButton);
 
         spokenText = (TextView) findViewById(R.id.requestText);
+        answerText = (TextView) findViewById(R.id.answerTextView);
         Button sendButton = (Button) findViewById(R.id.sendButton);
         Button readbackButton = (Button) findViewById(R.id.readbackButton);
 
@@ -76,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
     private void readBack() {
         tts.setLanguage(Locale.getDefault());
-        String spoken = spokenText.getText().toString();
+        String spoken = answerText.getText().toString();
         tts.speak(spoken, TextToSpeech.QUEUE_ADD, null);
     }
 
@@ -112,6 +113,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                     spokenText.setText(request);
                     if (autoTXRXButton.isChecked()) {
                         sendSpoken();
+                        readBack();
                     }
                 }
                 break;
@@ -151,6 +153,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                             new InputStreamReader(echoSocket.getInputStream()));
             String response = in.readLine();
             Log.d("FOO", "response:" + response);
+            answerText.setText(response);
         } catch (Exception e) {
             Log.e("FOO","Oh NOOO... socket exception",e);
         }

@@ -58,7 +58,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@+id/sendButton"
-        android:layout_centerHorizontal="true">
+        android:layout_centerHorizontal="true"
+        android:weightSum="1">
 
         <TextView
             android:layout_width="wrap_content"
@@ -67,11 +68,20 @@
             android:text="Auto TX/RX"
             android:id="@+id/textView2" />
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/answerTextView"
+            android:layout_gravity="center_vertical"
+            android:layout_weight="0.98"
+            android:text="No answer yet" />
+
         <ToggleButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="New ToggleButton"
             android:id="@+id/toggleButton" />
+
     </LinearLayout>
 
 </RelativeLayout>
