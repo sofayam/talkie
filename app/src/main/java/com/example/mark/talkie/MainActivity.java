@@ -2,6 +2,7 @@ package com.example.mark.talkie;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.os.Handler;
 import android.os.StrictMode;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
@@ -31,6 +32,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     private final int REQ_CODE_SPEECH_INPUT = 100;
     private TextToSpeech tts ;
     private ToggleButton autoTXRXButton;
+
+    private Handler myHandler = new Handler();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,8 +44,8 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
     private void setupInterface() {
 
-        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build(); // TBD MWA Filthy hack - use a thread you lazy sod!
-        StrictMode.setThreadPolicy(policy);
+        //StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build(); // TBD MWA Filthy hack - use a thread you lazy sod!
+        //StrictMode.setThreadPolicy(policy);
 
         autoTXRXButton = (ToggleButton) findViewById(R.id.toggleButton);
 
@@ -76,8 +80,12 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
     }
 
     private void readBack() {
-        tts.setLanguage(Locale.getDefault());
         String spoken = answerText.getText().toString();
+        sayIt(spoken);
+    }
+
+    private void sayIt(String spoken) {
+        tts.setLanguage(Locale.getDefault());
         tts.speak(spoken, TextToSpeech.QUEUE_ADD, null);
     }
 
@@ -113,7 +121,6 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                     spokenText.setText(request);
                     if (autoTXRXButton.isChecked()) {
                         sendSpoken();
-                        readBack();
                     }
                 }
                 break;
@@ -141,22 +148,40 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         sendSocket("REQ", spoken );
     }
 
-    void sendSocket(String reason, String text) {
+    void sendSocket(final String reason, final String text) {
 
-        try {
-            Socket echoSocket = new Socket(hostName, portNumber);
-            PrintWriter out =
-                    new PrintWriter(echoSocket.getOutputStream(), true);
-            out.println(reason + ":" + text);
-            BufferedReader in =
-                    new BufferedReader(
-                            new InputStreamReader(echoSocket.getInputStream()));
-            String response = in.readLine();
-            Log.d("FOO", "response:" + response);
-            answerText.setText(response);
-        } catch (Exception e) {
-            Log.e("FOO","Oh NOOO... socket exception",e);
-        }
+        Runnable socketRunnable = new Runnable() {
+            @Override
+            public void run() {
 
+
+                try {
+                    Socket echoSocket = new Socket(hostName, portNumber);
+                    PrintWriter out =
+                            new PrintWriter(echoSocket.getOutputStream(), true);
+                    out.println(reason + ":" + text);
+                    BufferedReader in =
+                            new BufferedReader(
+                                    new InputStreamReader(echoSocket.getInputStream()));
+                    final String response = in.readLine();
+                    Log.d("FOO", "response:" + response);
+                    myHandler.post(new Runnable() {
+                        public void run() {
+                            answerText.setText(response);
+                            readBack();
+                        }
+                    });
+
+                } catch (Exception e) {
+                    Log.e("FOO", "Oh NOOO... socket exception", e);
+                    myHandler.post(new Runnable() {
+                        public void run() {
+                            sayIt("You have a socket problem, I cannot talk to the assistant");
+                        }
+                    });
+                }
+            }
+        };
+        new Thread(socketRunnable).start();
     }
 }
