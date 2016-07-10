@@ -2,6 +2,7 @@ package com.example.mark.talkie;
 
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.os.StrictMode;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
@@ -14,12 +15,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener {
 
-
+    private String hostName = "192.168.178.25";
+    private int portNumber = 3003;
 
     private  TextView spokenText ;
     private final int REQ_CODE_SPEECH_INPUT = 100;
@@ -34,6 +40,9 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
     private void setupInterface() {
 
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build(); // TBD MWA Filthy hack - use a thread you lazy sod!
+        StrictMode.setThreadPolicy(policy);
+
         autoTXRXButton = (ToggleButton) findViewById(R.id.toggleButton);
 
         spokenText = (TextView) findViewById(R.id.requestText);
@@ -43,10 +52,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-                // read contents of text field and send to socket
-                String foo = spokenText.getText().toString();
-                Log.d("FOO", foo);
+                sendSpoken();
             }
         });
         Button speakButton = (Button) findViewById(R.id.speakButton);
@@ -102,11 +108,10 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
 
                     ArrayList<String> result = data
                             .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-                    spokenText.setText(result.get(0));
+                    String request = result.get(0);
+                    spokenText.setText(request);
                     if (autoTXRXButton.isChecked()) {
-                        Log.d("FOO","checked");
-                    } else {
-                        Log.d("FOO","not checked");
+                        sendSpoken();
                     }
                 }
                 break;
@@ -128,7 +133,27 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
             Log.e("error", "Initialization Failed!");
     }
 
+    void sendSpoken() {
+        String spoken = spokenText.getText().toString();
+        Log.d("FOO", "sendSpoken: " + spoken);
+        sendSocket("REQ", spoken );
+    }
+
     void sendSocket(String reason, String text) {
+
+        try {
+            Socket echoSocket = new Socket(hostName, portNumber);
+            PrintWriter out =
+                    new PrintWriter(echoSocket.getOutputStream(), true);
+            out.println(reason + ":" + text);
+            BufferedReader in =
+                    new BufferedReader(
+                            new InputStreamReader(echoSocket.getInputStream()));
+            String response = in.readLine();
+            Log.d("FOO", "response:" + response);
+        } catch (Exception e) {
+            Log.e("FOO","Oh NOOO... socket exception",e);
+        }
 
     }
 }
