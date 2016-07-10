@@ -45,4 +45,14 @@
         android:layout_alignTop="@+id/sendButton"
         android:layout_toLeftOf="@+id/sendButton"
         android:layout_toStartOf="@+id/sendButton" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="READ BACK"
+        android:id="@+id/readbackButton"
+        android:layout_below="@+id/speakButton"
+        android:layout_toLeftOf="@+id/sendButton"
+        android:layout_toStartOf="@+id/sendButton"
+        android:singleLine="true" />
 </RelativeLayout>
