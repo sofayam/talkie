@@ -1,12 +1,13 @@
 package com.example.mark.talkie;
 
+import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.StrictMode;
 import android.speech.RecognizerIntent;
 import android.speech.tts.TextToSpeech;
-import android.support.v7.app.AppCompatActivity;
+//import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -16,17 +17,36 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+//import org.apache.http.impl.client.HttpClientBuilder;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.Socket;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
-public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener {
+public class MainActivity extends Activity implements TextToSpeech.OnInitListener {
 
-    private String hostName = "192.168.178.25";
-    private int portNumber = 3003;
+    private String NLPURL = "http://localhost:3000/poster";
+   // private String hostName = "192.168.178.25";
+   // private int portNumber = 3003;
 
     private  TextView spokenText, answerText ;
     private final int REQ_CODE_SPEECH_INPUT = 100;
@@ -148,30 +168,64 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         sendSocket("REQ", spoken );
     }
 
+    public static String getStringResponse(InputStream is) {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+        StringBuilder sb = new StringBuilder();
+        String line = null;
+        // Read Server Response
+        try {
+            while ((line = reader.readLine()) != null) {
+                // Append server response in string
+                sb.append(line + "");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return sb.toString();
+    }
+
     void sendSocket(final String reason, final String text) {
 
         Runnable socketRunnable = new Runnable() {
             @Override
             public void run() {
 
-
+                // Inspired by Santosh
+                // http://cr-scm01.de.bosch.com:7990/projects/UPA/repos/smart-navigation/browse/client/src/main/java/com/bosch/smartnavigation/network/PostTask.java
+                HashMap<String, String> requestBody = new HashMap<>();
+                requestBody.put("reason", reason);
+                requestBody.put("text", text);
+                HttpURLConnection urlConnection = null;
                 try {
-                    Socket echoSocket = new Socket(hostName, portNumber);
-                    PrintWriter out =
-                            new PrintWriter(echoSocket.getOutputStream(), true);
-                    out.println(reason + ":" + text);
-                    BufferedReader in =
-                            new BufferedReader(
-                                    new InputStreamReader(echoSocket.getInputStream()));
-                    final String response = in.readLine();
-                    Log.d("FOO", "response:" + response);
-                    myHandler.post(new Runnable() {
-                        public void run() {
-                            answerText.setText(response);
-                            readBack();
-                        }
-                    });
+                    URL url = new URL(NLPURL);
+                    urlConnection = (HttpURLConnection)url.openConnection();
 
+                    urlConnection.setReadTimeout(10000);
+                    urlConnection.setConnectTimeout(15000);
+                    urlConnection.setRequestMethod("POST");
+                    urlConnection.setDoInput(true);
+                    urlConnection.setDoOutput(true);
+                    urlConnection.setRequestProperty("Content-Type", "application/json");
+
+                    urlConnection.setRequestProperty("reason", reason);
+                    urlConnection.setRequestProperty("text", text);
+
+                    urlConnection.connect();
+                    if (urlConnection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                        Log.e("FOO", "Status Code: " + urlConnection.getResponseCode());
+                    } else {
+                        Log.d("FOO", "Connection established!!");
+                        String resp = getStringResponse(urlConnection.getInputStream());
+                        JSONObject jsonResponse = new JSONObject(resp.toString());
+
+                        if (!jsonResponse.getBoolean("success")) {
+                            throw new JSONException(jsonResponse.getString("message"));
+                        } else {
+                            Log.d("FOO", jsonResponse.toString());
+                        }
+
+                    }
                 } catch (Exception e) {
                     Log.e("FOO", "Oh NOOO... socket exception", e);
                     myHandler.post(new Runnable() {
@@ -179,7 +233,11 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
                             sayIt("You have a socket problem, I cannot talk to the assistant");
                         }
                     });
+
+                } finally {
+                    urlConnection.disconnect();
                 }
+
             }
         };
         new Thread(socketRunnable).start();
