@@ -26,6 +26,8 @@ dependencies {
     compile 'com.android.support:appcompat-v7:24.0.0'
 
     //compile group: 'org.apache.httpcomponents' , name: 'httpclient-android' , version: '4.3.5.1'
-    compile 'com.googlecode.json-simple:json-simple:1.1.1'
+    compile ('com.googlecode.json-simple:json-simple:1.1.1') {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
 
 }
