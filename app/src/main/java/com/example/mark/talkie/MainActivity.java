@@ -19,8 +19,10 @@ import android.widget.ToggleButton;
 
 //import org.apache.http.impl.client.HttpClientBuilder;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -32,6 +34,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.Socket;
@@ -42,11 +45,11 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+
 public class MainActivity extends Activity implements TextToSpeech.OnInitListener {
 
-    private String NLPURL = "http://localhost:3000/poster";
-   // private String hostName = "192.168.178.25";
-   // private int portNumber = 3003;
+    //private String NLPURL = "http://localhost:3000/poster";
+   private String NLPURL = "http://192.168.178.25:3005/poster";
 
     private  TextView spokenText, answerText ;
     private final int REQ_CODE_SPEECH_INPUT = 100;
@@ -64,8 +67,6 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
 
     private void setupInterface() {
 
-        //StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build(); // TBD MWA Filthy hack - use a thread you lazy sod!
-        //StrictMode.setThreadPolicy(policy);
 
         autoTXRXButton = (ToggleButton) findViewById(R.id.toggleButton);
 
@@ -130,7 +131,7 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        Log.d("FOO", "activity result");
+        Log.d("TALKIE", "activity result");
         switch (requestCode) {
             case REQ_CODE_SPEECH_INPUT: {
                 if (resultCode == RESULT_OK && null != data) {
@@ -164,11 +165,11 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
 
     void sendSpoken() {
         String spoken = spokenText.getText().toString();
-        Log.d("FOO", "sendSpoken: " + spoken);
-        sendSocket("REQ", spoken );
+        Log.d("TALKIE", "sendSpoken: " + spoken);
+        sendSocket("start", spoken );
     }
 
-    public static String getStringResponse(InputStream is) {
+    private static String getStringResponse(InputStream is) {
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
         StringBuilder sb = new StringBuilder();
         String line = null;
@@ -185,17 +186,40 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         return sb.toString();
     }
 
-    void sendSocket(final String reason, final String text) {
+    private static JSONObject parseJSONReply (String json) throws ParseException {
+        JSONParser parser = new JSONParser();
+        Object obj = parser.parse(json);
+        JSONObject jsonObject = (JSONObject) obj;
+        return jsonObject;
+
+    }
+
+    private static String buildJSONRequest(String state, String text)  {
+        JSONObject obj = new JSONObject();
+        obj.put("state", state);
+        obj.put("text", text);
+
+        StringWriter out = new StringWriter();
+        try {
+            obj.writeJSONString(out);
+        } catch (Exception e) {
+        }
+
+        String jsonText = out.toString();
+        return jsonText;
+    }
+
+    void sendSocket(final String state, final String text) {
+
+        // Socket code inspired by Santosh
+        // http://cr-scm01.de.bosch.com:7990/projects/UPA/repos/smart-navigation/browse/client/src/main/java/com/bosch/smartnavigation/network/PostTask.java
 
         Runnable socketRunnable = new Runnable() {
             @Override
             public void run() {
 
-                // Inspired by Santosh
-                // http://cr-scm01.de.bosch.com:7990/projects/UPA/repos/smart-navigation/browse/client/src/main/java/com/bosch/smartnavigation/network/PostTask.java
-                HashMap<String, String> requestBody = new HashMap<>();
-                requestBody.put("reason", reason);
-                requestBody.put("text", text);
+                String JSONPayload = buildJSONRequest(state,text);
+
                 HttpURLConnection urlConnection = null;
                 try {
                     URL url = new URL(NLPURL);
@@ -208,26 +232,23 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
                     urlConnection.setDoOutput(true);
                     urlConnection.setRequestProperty("Content-Type", "application/json");
 
-                    urlConnection.setRequestProperty("reason", reason);
-                    urlConnection.setRequestProperty("text", text);
+                    urlConnection.setRequestProperty("jsonpayload", JSONPayload);
 
                     urlConnection.connect();
-                    if (urlConnection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                        Log.e("FOO", "Status Code: " + urlConnection.getResponseCode());
-                    } else {
-                        Log.d("FOO", "Connection established!!");
-                        String resp = getStringResponse(urlConnection.getInputStream());
-                        JSONObject jsonResponse = new JSONObject(resp.toString());
 
-                        if (!jsonResponse.getBoolean("success")) {
-                            throw new JSONException(jsonResponse.getString("message"));
-                        } else {
-                            Log.d("FOO", jsonResponse.toString());
-                        }
+                    if (urlConnection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                        Log.e("TALKIE", "Status Code: " + urlConnection.getResponseCode());
+                    } else {
+                        Log.d("TALKIE", "Connection established!!");
+                        String resp = getStringResponse(urlConnection.getInputStream());
+                        JSONObject jsonResponse = parseJSONReply(resp);
+
+                        Log.d("TALKIE", (String)jsonResponse.get("state"));
+                        Log.d("TALKIE", (String)jsonResponse.get("text"));
 
                     }
                 } catch (Exception e) {
-                    Log.e("FOO", "Oh NOOO... socket exception", e);
+                    Log.e("TALKIE", "Oh NOOO... socket exception", e);
                     myHandler.post(new Runnable() {
                         public void run() {
                             sayIt("You have a socket problem, I cannot talk to the assistant");
