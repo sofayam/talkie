@@ -34,7 +34,7 @@ import java.util.Locale;
 public class MainActivity extends Activity implements TextToSpeech.OnInitListener {
 
     //private String NLPURL = "http://localhost:3000/poster";
-   private String NLPURL = "http://192.168.178.25:3000/say";
+   private String NLPURL = "http://192.168.178.25:3003/say";
 
     private  TextView spokenText, answerText, headerText ;
     private final int REQ_CODE_SPEECH_INPUT = 100;
