@@ -28,6 +28,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -40,7 +41,9 @@ import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -49,9 +52,9 @@ import java.util.Map;
 public class MainActivity extends Activity implements TextToSpeech.OnInitListener {
 
     //private String NLPURL = "http://localhost:3000/poster";
-   private String NLPURL = "http://192.168.178.25:3005/poster";
+   private String NLPURL = "http://192.168.178.25:3000/say";
 
-    private  TextView spokenText, answerText ;
+    private  TextView spokenText, answerText, headerText ;
     private final int REQ_CODE_SPEECH_INPUT = 100;
     private TextToSpeech tts ;
     private ToggleButton autoTXRXButton;
@@ -72,6 +75,10 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
 
         spokenText = (TextView) findViewById(R.id.requestText);
         answerText = (TextView) findViewById(R.id.answerTextView);
+        headerText = (TextView) findViewById(R.id.headerText);
+
+        headerText.setText(getCurrentTimeStamp()); // + BuildConfig.buildTime);
+
         Button sendButton = (Button) findViewById(R.id.sendButton);
         Button readbackButton = (Button) findViewById(R.id.readbackButton);
 
@@ -169,6 +176,12 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
         sendSocket("start", spoken );
     }
 
+    public static String getCurrentTimeStamp() {
+        SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//dd/MM/yyyy
+        Date now = new Date();
+        String strDate = sdfDate.format(now);
+        return strDate;
+    }
     private static String getStringResponse(InputStream is) {
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
         StringBuilder sb = new StringBuilder();
@@ -232,9 +245,16 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
                     urlConnection.setDoOutput(true);
                     urlConnection.setRequestProperty("Content-Type", "application/json");
 
-                    urlConnection.setRequestProperty("jsonpayload", JSONPayload);
+
 
                     urlConnection.connect();
+
+                    //urlConnection.setRequestProperty("jsonpayload", JSONPayload);
+
+                    OutputStreamWriter out = new OutputStreamWriter(
+                            urlConnection.getOutputStream());
+                    out.write(JSONPayload);
+                    out.close();
 
                     if (urlConnection.getResponseCode() != HttpURLConnection.HTTP_OK) {
                         Log.e("TALKIE", "Status Code: " + urlConnection.getResponseCode());
